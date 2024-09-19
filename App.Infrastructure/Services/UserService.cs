@@ -1,63 +1,68 @@
-﻿using App.Application.DTOs;
+﻿using App.Application.Exceptions;
+using App.Application.Features.AuthFeatures.CommandHandlers;
 using App.Application.Interfaces;
+using App.Domain.Abstractions;
+using App.Infrastructure.Identity;
+using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace App.Infrastructure.Services
 {
     public class UserService : IUserService
     {
-        public Task<(bool Success, string ErrorMessage)> ChangePassword(string OldPassword, string newPassword, string Userid)
+        private readonly IUowRepo _uowRepo;
+        private readonly IMapper _mapper;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
+
+        public UserService(IUowRepo uowRepo, IMapper mapper, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, RoleManager<ApplicationRole> roleManager)
         {
-            throw new NotImplementedException();
+            _uowRepo = uowRepo;
+            _mapper = mapper;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _roleManager = roleManager;
         }
 
-        public Task<(bool isSucceed, string userId)> CreateUserAsync(RegistrationDTOs model)
+        public async Task<(bool isSucceed, string userId)> CreateUserAsync(RegisterUserCommend model)
         {
-            throw new NotImplementedException();
-        }
 
-        public Task<bool> DeleteUserAsync(string userId)
-        {
-            throw new NotImplementedException();
-        }
+            var user = new ApplicationUser()
+            {
+                FirstName = model.FirstName.Trim(),
+                LastName = model.LastName.Trim(),
+                Email = model.Email.Trim(),
+                PhoneNumber = model.Phone.Trim(),
+                Longitude = model?.Longitude?.Trim(),
+                Latitude = model?.Latitude?.Trim(),
+                UserName = model?.UserName?.Trim(),
+            };
+            // Check if all roles exist
+            foreach (var role in model.Roles)
+            {
+                if (await _roleManager.FindByNameAsync(role) == null)
+                {
+                    throw new NotFoundException("One or more roles are invalid.");
+                }
+            }
+            // Create user
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+            {
+                var errorMessages = string.Join(", ", result.Errors.Select(e => e.Description));
+                throw new Exception($"User creation failed: {errorMessages}");
+            }
+            // Add user to roles
+            var addUserRole = await _userManager.AddToRolesAsync(user, model.Roles);
+            if (!addUserRole.Succeeded)
+            {
+                var errorMessages = string.Join(", ", result.Errors.Select(e => e.Description));
+                throw new Exception($"Role creation failed: {errorMessages}");
+            }
 
-        public Task<List<UserDTO>> GetAllUsersAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<UserDTO> GetUserDetailsAsync(string userId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<(string userId, string FirstName, string LastName, string UserName, string email, IList<string> roles)> GetUserDetailsByUserNameAsync(string userName)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetUserIdAsync(string userName)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetUserNameAsync(string userId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> IsUniqueUserName(string userName)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> SigninUserAsync(string userName, string password)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> UpdateUserProfile(UserDTO model)
-        {
-            throw new NotImplementedException();
+            return (isSucceed: true, userId: user.Id) ;
         }
     }
 }
