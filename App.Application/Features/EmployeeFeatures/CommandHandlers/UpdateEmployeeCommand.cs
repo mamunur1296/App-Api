@@ -47,10 +47,10 @@ namespace App.Application.Features.EmployeeFeatures.CommandHandlers
                     Status = HttpStatusCode.Created, // You can set the status code here
                     id = result.id,
                     Data = "Success",
-                    Message = "Employee Update successfully."
+                    Message = "User Update successfully."
                 };
             }
-            throw new BadRequestException("Failed to Update the employee. Please try again.");
+            throw new BadRequestException("Failed to Update the User. Please try again.");
         }
     }
 }

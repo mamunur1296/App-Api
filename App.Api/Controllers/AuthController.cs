@@ -1,4 +1,6 @@
 ﻿using App.Application.Features.AuthFeatures.CommandHandlers;
+using App.Application.Features.EmployeeFeatures.CommandHandlers;
+using App.Application.Features.UserFeatures.CommandHandlers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -21,5 +23,18 @@ namespace App.Api.Controllers
             var result = await _mediator.Send(commend);
             return StatusCode((int)HttpStatusCode.Created, result);
         }
+        [HttpPost("user_login")]
+        public async Task<IActionResult> Login( UserLoginCommend commend)
+        {
+            var result = await _mediator.Send(commend);
+            return StatusCode((int)HttpStatusCode.Created, result);
+        }
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword( ChangePasswordCommend commend)
+        {
+            var result = await _mediator.Send(commend);
+            return StatusCode((int)HttpStatusCode.Created, result);
+        }
+
     }
 }
